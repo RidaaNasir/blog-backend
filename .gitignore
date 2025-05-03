@@ -11,13 +11,20 @@
 # production
 /build
 
-# misc
-.DS_Store
+# environment variables
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
+# uploads or public large files
+/uploads
+
+# misc
+.DS_Store
+
+# log files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
