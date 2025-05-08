@@ -17,11 +17,9 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
-  "https://food-blog-4fj3.vercel.app", // <-- This is the correct frontend URL
+  "https://food-blog-4fj3.vercel.app", // UPDATED frontend deployed URL
 ];
 
-
-// Single clean CORS middleware
 app.use(
   cors({
     origin: allowedOrigins,
@@ -64,8 +62,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files (uploaded images, files, etc.)
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Serve static files (uploaded images, files, etc.) WITH CORS HEADERS
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    next();
+  },
+  express.static(path.join(__dirname, "uploads"))
+);
 
 // Test endpoint
 app.get("/api/test", (req, res) => {
@@ -88,7 +93,7 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
-    process.exit(1); // Exit process if DB connection fails
+    process.exit(1);
   });
 
 // Error handling middleware
