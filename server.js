@@ -17,8 +17,9 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
-  "https://food-blog-dusky-seven.vercel.app", // <-- Replace this if your frontend URL is different
+  "https://food-blog-4fj3.vercel.app", // <-- This is the correct frontend URL
 ];
+
 
 // Single clean CORS middleware
 app.use(
