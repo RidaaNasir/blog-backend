@@ -32,6 +32,43 @@ const getLandingPage = async (req, res) => {
         }
       });
     }
+
+    // Process media URLs - always use deployed URL
+    const baseUrl = 'https://blog-backend-iurp.onrender.com';
+
+    // Process hero images
+    if (landingPage.hero.images && landingPage.hero.images.length > 0) {
+      landingPage.hero.images = landingPage.hero.images.map(image => {
+        if (!image.startsWith('http')) {
+          return `${baseUrl}${image}`;
+        }
+        return image;
+      });
+    }
+
+    // Process hero video
+    if (landingPage.hero.video && !landingPage.hero.video.startsWith('http')) {
+      landingPage.hero.video = `${baseUrl}${landingPage.hero.video}`;
+    }
+
+    // Process about image
+    if (landingPage.about.image && !landingPage.about.image.startsWith('http')) {
+      landingPage.about.image = `${baseUrl}${landingPage.about.image}`;
+    }
+
+    // Process reels
+    if (landingPage.reels && landingPage.reels.items) {
+      landingPage.reels.items = landingPage.reels.items.map(reel => {
+        if (reel.videoUrl && !reel.videoUrl.startsWith('http')) {
+          reel.videoUrl = `${baseUrl}${reel.videoUrl}`;
+        }
+        if (reel.thumbnail && !reel.thumbnail.startsWith('http')) {
+          reel.thumbnail = `${baseUrl}${reel.thumbnail}`;
+        }
+        return reel;
+      });
+    }
+
     res.json(landingPage);
   } catch (error) {
     console.error("Error fetching landing page:", error);
@@ -73,20 +110,17 @@ const uploadHeroMedia = async (req, res) => {
 
     const uploadedFiles = [];
     for (const file of req.files) {
-      const isVideoFile = isVideo(file.originalname);
-      const savedPath = isVideoFile 
-        ? await saveFile(file, 'landing-page/hero')
-        : await saveImage(file, 'landing-page/hero');
+      const isVideoFile = file.mimetype.startsWith('video/');
       
       if (isVideoFile) {
-        landingPage.hero.video = savedPath;
+        landingPage.hero.video = file.path;
       } else {
         if (!landingPage.hero.images) {
           landingPage.hero.images = [];
         }
-        landingPage.hero.images.push(savedPath);
+        landingPage.hero.images.push(file.path);
       }
-      uploadedFiles.push(savedPath);
+      uploadedFiles.push(file.path);
     }
 
     await landingPage.save();

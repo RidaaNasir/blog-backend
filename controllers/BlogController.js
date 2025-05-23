@@ -47,9 +47,9 @@ exports.getAllBlogs = async (req, res) => {
       
       // Fix image path if it exists
       if (blogObj.image) {
-        // Make sure the image path is correct - don't modify it if it already starts with /uploads
-        if (!blogObj.image.startsWith('/uploads')) {
-          blogObj.image = `/uploads/${blogObj.image.split('uploads/').pop()}`;
+        // Always use the deployed URL for media
+        if (!blogObj.image.startsWith('http')) {
+          blogObj.image = `https://blog-backend-iurp.onrender.com${blogObj.image}`;
         }
         console.log("Processed blog image path:", blogObj.image);
       }
@@ -57,8 +57,8 @@ exports.getAllBlogs = async (req, res) => {
       // Process media array if it exists
       if (blogObj.media && blogObj.media.length > 0) {
         blogObj.media = blogObj.media.map(item => {
-          if (item.url && !item.url.startsWith('/uploads')) {
-            item.url = `/uploads/${item.url.split('uploads/').pop()}`;
+          if (item.url && !item.url.startsWith('http')) {
+            item.url = `https://blog-backend-iurp.onrender.com${item.url}`;
           }
           return item;
         });
@@ -354,28 +354,8 @@ exports.createBlog = async (req, res) => {
         try {
           const fileType = file.mimetype.startsWith('image/') ? 'image' : 'video';
           
-          // Create a URL that will work with the static file serving
-          let url;
-          if (file.path) {
-            const relativePath = file.path.replace(/\\/g, '/');
-            const pathParts = relativePath.split('uploads/');
-            url = `/uploads/${pathParts.length > 1 ? pathParts[1] : relativePath}`;
-          } else if (file.buffer) {
-            // Handle memory storage - save the file to disk
-            const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
-            const uploadDir = path.join(__dirname, '../uploads/blogs');
-            
-            // Ensure directory exists
-            if (!fs.existsSync(uploadDir)) {
-              fs.mkdirSync(uploadDir, { recursive: true });
-            }
-            
-            const filePath = path.join(uploadDir, filename);
-            fs.writeFileSync(filePath, file.buffer);
-            url = `/uploads/blogs/${filename}`;
-          } else {
-            throw new Error('Invalid file object');
-          }
+          // Get the Cloudinary URL
+          const url = file.path;
           
           blogData.media.push({
             type: fileType,
@@ -392,47 +372,6 @@ exports.createBlog = async (req, res) => {
       const firstImage = blogData.media.find(item => item.type === 'image');
       if (firstImage) {
         blogData.image = firstImage.url;
-      }
-    } else if (req.file) {
-      // Handle single file upload for backward compatibility
-      try {
-        const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'video';
-        
-        // Create a URL that will work with the static file serving
-        let url;
-        if (req.file.path) {
-          const relativePath = req.file.path.replace(/\\/g, '/');
-          const pathParts = relativePath.split('uploads/');
-          url = `/uploads/${pathParts.length > 1 ? pathParts[1] : relativePath}`;
-        } else if (req.file.buffer) {
-          // Handle memory storage - save the file to disk
-          const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(req.file.originalname);
-          const uploadDir = path.join(__dirname, '../uploads/blogs');
-          
-          // Ensure directory exists
-          if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-          }
-          
-          const filePath = path.join(uploadDir, filename);
-          fs.writeFileSync(filePath, req.file.buffer);
-          url = `/uploads/blogs/${filename}`;
-        } else {
-          throw new Error('Invalid file object');
-        }
-        
-        blogData.media.push({
-          type: fileType,
-          url: url,
-          caption: req.body.caption || ''
-        });
-        
-        // Set as main image if it's an image
-        if (fileType === 'image') {
-          blogData.image = url;
-        }
-      } catch (fileError) {
-        console.error('Error processing file:', fileError);
       }
     }
 

@@ -1,57 +1,6 @@
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { upload } = require('../config/cloudinary');
 
-// Ensure directories exist
-const ensureDirectoriesExist = () => {
-  const dirs = [
-    path.join(__dirname, "../uploads"),
-    path.join(__dirname, "../uploads/blogs"),
-    path.join(__dirname, "../uploads/profiles"),
-    path.join(__dirname, "../uploads/videos"),
-    path.join(__dirname, "../uploads/landing"),
-    path.join(__dirname, "../uploads/landing-page"),
-    path.join(__dirname, "../uploads/landing-page/reels"),
-    path.join(__dirname, "../uploads/landing-page/reels/thumbnails")
-  ];
-  
-  dirs.forEach(dir => {
-    if (!fs.existsSync(dir)) {
-      console.log(`Creating directory: ${dir}`);
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  });
-};
-
-ensureDirectoriesExist();
-
-// Configure multer for memory storage
-const storage = multer.memoryStorage();
-
-
-
-// Create multer instance with configuration
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 50 * 1024 * 1024 // Increased to 50MB to accommodate videos
-  },
-  fileFilter: (req, file, cb) => {
-    console.log("Processing file upload:", {
-      fieldname: file.fieldname,
-      originalname: file.originalname,
-      mimetype: file.mimetype
-    });
-    
-    // Allow images and videos
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image and video files are allowed'));
-    }
-  }
-});
-
+// Export the upload middleware
 module.exports = upload;
 
 /*
@@ -101,7 +50,7 @@ module.exports = upload;
 
 
 --- ⚠️ Works for Reels Upload Only (with memory storage) ---
-// Note: This can fail if you try to save memory buffer to disk manually but it’s undefined.
+// Note: This can fail if you try to save memory buffer to disk manually but it's undefined.
 
 const multer = require("multer");
 const path = require("path");
