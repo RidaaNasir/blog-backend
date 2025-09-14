@@ -23,75 +23,61 @@ const allowedOrigins = [
   "https://blog-backend-iurp.onrender.com",
   "http://localhost:5003",
   "http://localhost:5173",
-  "https://blog-frontend-2f8p.onrender.com"
+  "https://blog-frontend-2f8p.onrender.com",
 ];
 
 // Single clean CORS middleware
 app.use(
   cors({
-    origin: function(origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow non-browser requests
       if (allowedOrigins.indexOf(origin) === -1) {
-        console.log('Origin not allowed:', origin);
-        return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+        console.log("Origin not allowed:", origin);
+        return callback(
+          new Error("The CORS policy does not allow this origin."),
+          false
+        );
       }
       return callback(null, true);
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control", "Origin", "Accept"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cache-Control",
+      "Origin",
+      "Accept",
+    ],
     exposedHeaders: ["Content-Range", "X-Content-Range"],
-    maxAge: 86400 // 24 hours
+    maxAge: 86400,
   })
 );
 
-// Debug middleware to log CORS-related headers
-app.use((req, res, next) => {
-  console.log('Request Origin:', req.headers.origin);
-  console.log('Request Method:', req.method);
-  console.log('Request Headers:', req.headers);
-  
-  // Add CORS headers manually
-  if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Origin, Accept');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  
-  next();
-});
-
 // Handle preflight requests
-app.options('*', cors());
+app.options("*", cors());
 
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Serve static files with proper CORS headers
-app.use("/uploads", (req, res, next) => {
-  // Add CORS headers for static files
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-  next();
-}, express.static(path.join(__dirname, "uploads"), {
-  setHeaders: (res, path) => {
-    // Set appropriate content type based on file extension
-    if (path.endsWith('.mp4')) {
-      res.set('Content-Type', 'video/mp4');
-    } else if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
-      res.set('Content-Type', 'image/jpeg');
-    } else if (path.endsWith('.png')) {
-      res.set('Content-Type', 'image/png');
-    }
-  }
-}));
+// ✅ FIXED: Serve static uploads folder
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".mp4")) {
+        res.set("Content-Type", "video/mp4");
+      } else if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
+        res.set("Content-Type", "image/jpeg");
+      } else if (filePath.endsWith(".png")) {
+        res.set("Content-Type", "image/png");
+      }
+      res.set("Access-Control-Allow-Origin", "*"); // allow cross-origin
+      res.set("Cache-Control", "public, max-age=31536000"); // cache 1 year
+    },
+  })
+);
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -99,7 +85,6 @@ app.use((req, res, next) => {
   console.log(
     `[${new Date().toISOString()}] ${req.method} ${req.url} - From: ${req.ip}`
   );
-  console.log("Request Headers:", JSON.stringify(req.headers, null, 2));
   res.on("finish", () => {
     const duration = Date.now() - start;
     console.log(
@@ -113,10 +98,7 @@ app.use((req, res, next) => {
 
 // Cache control middleware
 app.use((req, res, next) => {
-  res.setHeader(
-    "Cache-Control",
-    "no-store, no-cache, must-revalidate, proxy-revalidate"
-  );
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
   next();
@@ -124,7 +106,6 @@ app.use((req, res, next) => {
 
 // Test endpoint
 app.get("/api/test", (req, res) => {
-  console.log("Test endpoint hit!");
   res.json({ message: "Backend API is working properly!" });
 });
 
@@ -143,13 +124,12 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
-    process.exit(1); // Exit process if DB connection fails
+    process.exit(1);
   });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("API Error:", err);
-  console.error(err.stack);
   res.status(500).json({ message: "Something went wrong!" });
 });
 
