@@ -1,7 +1,13 @@
-const cors = require("cors");
 const express = require("express");
-const path = require("path");
 const mongoose = require("mongoose");
+const cors = require("cors");
+const path = require("path");
+require("dotenv").config();
+
+const landingPageRoutes = require("./routes/landingPageRoutes");
+const blogRoutes = require("./routes/blogRoutes");
+const userRoutes = require("./routes/userRoutes");
+const siteSettingsRoutes = require("./routes/siteSettingsRoutes");
 
 const app = express();
 
@@ -13,7 +19,7 @@ const allowedOrigins = [
   "https://blog-frontend-2f8p.onrender.com",
 ];
 
-// ✅ Clean CORS middleware
+// ✅ CORS middleware
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -38,27 +44,31 @@ app.use(
   })
 );
 
-// ✅ Parse JSON & URL encoded
+// ✅ Parse JSON & URL-encoded
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// ✅ Serve static uploads
+// ✅ Serve static uploads folder
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"), {
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".mp4")) {
-        res.set("Content-Type", "video/mp4");
-      } else if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
+      if (filePath.endsWith(".mp4")) res.set("Content-Type", "video/mp4");
+      else if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg"))
         res.set("Content-Type", "image/jpeg");
-      } else if (filePath.endsWith(".png")) {
-        res.set("Content-Type", "image/png");
-      }
-      res.set("Access-Control-Allow-Origin", "*"); // allow cross-origin
+      else if (filePath.endsWith(".png")) res.set("Content-Type", "image/png");
+
+      res.set("Access-Control-Allow-Origin", "*");
       res.set("Cache-Control", "public, max-age=31536000"); // 1 year cache
     },
   })
 );
+
+// ✅ API routes
+app.use("/api/landing-page", landingPageRoutes);
+app.use("/api/blogs", blogRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/site-settings", siteSettingsRoutes);
 
 // ✅ Test endpoint
 app.get("/api/test", (req, res) => {
@@ -67,17 +77,24 @@ app.get("/api/test", (req, res) => {
 
 // ✅ MongoDB connection
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
     process.exit(1);
   });
 
-// ✅ Error handler
+// ✅ Error handling middleware
 app.use((err, req, res, next) => {
   console.error("API Error:", err);
   res.status(500).json({ message: "Something went wrong!" });
 });
 
-module.exports = app;
+// ✅ Start server (required for Render)
+const PORT = process.env.PORT || 5003;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
